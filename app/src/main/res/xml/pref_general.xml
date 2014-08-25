@@ -6,6 +6,13 @@
         android:summary="Enable flashing"
         android:defaultValue="true" />
 
-
+    <ListPreference
+        android:key="beats"
+        android:title="Beats per measure"
+        android:entries="@array/beats_per_measure"
+        android:entryValues="@array/beats_per_measure"
+        android:defaultValue="4"
+        android:negativeButtonText="@null"
+        android:positiveButtonText="@null" />
 
 </PreferenceScreen>

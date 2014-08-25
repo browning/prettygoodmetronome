@@ -18,6 +18,11 @@ import android.view.View;
 import android.content.Intent;
 import android.preference.PreferenceManager;
 import android.content.SharedPreferences;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdSize;
+import com.google.android.gms.ads.AdView;
+
+import android.widget.RelativeLayout;
 
 
 public class MetronomeView extends Activity {
@@ -35,6 +40,10 @@ public class MetronomeView extends Activity {
     private boolean started = false;
     SharedPreferences sharedPref;
 
+    private AdView adView;
+
+    /* Your ad unit id. Replace with your actual ad unit id. */
+    private static final String AD_UNIT_ID = "INSERT_YOUR_AD_UNIT_ID_HERE";
 
     private int myprogress = 60;
 
@@ -62,10 +71,14 @@ public class MetronomeView extends Activity {
                     iv.setImageResource(R.drawable.play);
                 }
                 else {
+                    String beats_per_measure = sharedPref.getString("beats", "4");
+                    beats = (short)Integer.parseInt(beats_per_measure);
+
                     iv.setImageResource(R.drawable.stop);
                     started = true;
                     metroTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[])null);
                     metroTask.setBpm((short)(myprogress+1));
+                    metroTask.setBeat(beats);
                 }
             }
         });
@@ -95,7 +108,13 @@ public class MetronomeView extends Activity {
 
             }
         });
+
+        // Look up the AdView as a resource and load a request.
+        AdView adView = (AdView) this.findViewById(R.id.adView);
+        AdRequest adRequest = new AdRequest.Builder().build();
+        adView.loadAd(adRequest);
     }
+
 
 
     @Override
