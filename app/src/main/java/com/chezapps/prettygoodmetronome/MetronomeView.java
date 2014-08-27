@@ -21,6 +21,7 @@ import android.content.SharedPreferences;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
+import android.content.Context;
 
 import android.widget.RelativeLayout;
 
@@ -29,14 +30,15 @@ public class MetronomeView extends Activity {
 
     private MetronomeAsyncTask metroTask;
     private Handler mHandler;
+    private Context mContext;
 
     private short bpm = 100;
     private short noteValue = 4;
     private short beats = 4;
     private short volume;
     private short initialVolume;
-    private double beatSound = 2440;
-    private double sound = 6440;
+    private double beatSound = 400;
+    private double sound = 380;
     private boolean started = false;
     SharedPreferences sharedPref;
 
@@ -51,6 +53,7 @@ public class MetronomeView extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_metronome_view);
+        mContext = this;
         sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         metroTask = new MetronomeAsyncTask();
 
@@ -191,7 +194,7 @@ public class MetronomeView extends Activity {
 
         MetronomeAsyncTask() {
             mHandler = getHandler();
-            metronome = new Metronome(mHandler);
+            metronome = new Metronome(mHandler, mContext);
         }
 
         protected String doInBackground(Void... params) {

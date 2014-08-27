@@ -1,8 +1,14 @@
 package com.chezapps.prettygoodmetronome;
 
-import android.util.Log;
 import android.os.Handler;
 import android.os.Message;
+import java.io.InputStream;
+import android.content.Context;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+
 
 public class Metronome {
 
@@ -13,21 +19,43 @@ public class Metronome {
 
     private double beatSound;
     private double sound;
-    private final int tick = 1000; // samples of tick
+    private final int tick = 5000; // samples of tick
 
     private Handler mHandler;
 
     private boolean play = true;
 
-    private AudioGenerator audioGenerator = new AudioGenerator(8000);
+    private AudioGenerator audioGenerator = new AudioGenerator(44100);
 
-    private double[] soundTickArray;
+    private byte[] soundTickArray = new byte[10000];
     private double[] soundTockArray;
     private double[] silenceSoundArray;
     private Message msg;
     private int currentBeat = 1;
 
-    public Metronome(Handler handler) {
+    private byte[] drumnotes = new byte[8000];
+    private byte[] ticknotes = new byte[8000];
+
+    public Metronome(Handler handler, Context mContext) {
+        InputStream is = mContext.getResources().openRawResource(R.raw.hat2);
+        BufferedInputStream     bis = new BufferedInputStream   (is, 44100);
+        DataInputStream         dis = new DataInputStream       (bis);
+
+        try {
+            int i = 0;                                                          //  Read the file into the "music" array
+            while (dis.available() > 0 && i < 10000)
+            {
+                soundTickArray[i] = dis.readByte();                                      //  This assignment does not reverse the order
+                i++;
+            }
+
+            dis.close();
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         this.mHandler = handler;
         audioGenerator.createPlayer();
     }
@@ -37,19 +65,30 @@ public class Metronome {
         bpm = b;
     }
 
+    public double[] toDoubleArray(byte[] byteArray){
+        int times = Double.SIZE / Byte.SIZE;
+        double[] doubles = new double[byteArray.length / times];
+        for(int i=0;i<doubles.length;i++){
+            doubles[i] = ByteBuffer.wrap(byteArray, i*times, times).getDouble();
+        }
+        return doubles;
+    }
+
     public void calcSilence() {
-        silence = (int) (((60/bpm)*8000)-tick);
-        soundTickArray = new double[this.tick];
+        silence = (int) (((60/bpm)*44100)-tick);
+       // soundTickArray = new double[this.tick];
         soundTockArray = new double[this.tick];
         silenceSoundArray = new double[this.silence];
         msg = new Message();
         msg.obj = ""+currentBeat;
-        double[] tick = audioGenerator.getSineWave(this.tick, 8000, beatSound);
-        double[] tock = audioGenerator.getSineWave(this.tick, 8000, sound);
-        for(int i=0;i<this.tick;i++) {
-            soundTickArray[i] = tick[i];
-            soundTockArray[i] = tock[i];
-        }
+       // double[] tick = audioGenerator.getSineWave(this.tick, 8000, beatSound);
+       // double[] tock = audioGenerator.getSineWave(this.tick, 8000, sound);
+       // double[] tick = toDoubleArray(drumnotes);
+      //  double[] tock = toDoubleArray(ticknotes);
+      //  for(int i=0;i<this.tick;i++) {
+       //     soundTickArray[i] = tick[i]*8;
+        //    soundTockArray[i] = tick[i]*16;
+       // }
         for(int i=0;i<silence;i++)
             silenceSoundArray[i] = 0;
     }
@@ -60,9 +99,10 @@ public class Metronome {
             msg = new Message();
             msg.obj = ""+currentBeat;
             if(currentBeat == 1)
-                audioGenerator.writeSound(soundTockArray);
+
+                audioGenerator.writeSoundBytes(soundTickArray);
             else
-                audioGenerator.writeSound(soundTickArray);
+                audioGenerator.writeSoundBytes(soundTickArray);
             if(bpm <= 120)
                 mHandler.sendMessage(msg);
             audioGenerator.writeSound(silenceSoundArray);

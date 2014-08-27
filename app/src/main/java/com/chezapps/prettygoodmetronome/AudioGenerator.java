@@ -28,8 +28,8 @@ public class AudioGenerator {
             // scale to maximum amplitude
             short maxSample = (short) ((sample * Short.MAX_VALUE));
             // in 16 bit wav PCM, first byte is the low order byte
-            generatedSound[index++] = (byte) (maxSample & 0x00ff);
             generatedSound[index++] = (byte) ((maxSample & 0xff00) >>> 8);
+            generatedSound[index++] = (byte) ((maxSample & 0x00ff));
 
         }
         return generatedSound;
@@ -47,6 +47,10 @@ public class AudioGenerator {
     public void writeSound(double[] samples) {
         byte[] generatedSnd = get16BitPcm(samples);
         audioTrack.write(generatedSnd, 0, generatedSnd.length);
+    }
+
+    public void writeSoundBytes(byte[] samples) {
+        audioTrack.write(samples, 0, samples.length);
     }
 
     public void destroyAudioTrack() {
