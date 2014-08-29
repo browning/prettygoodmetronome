@@ -19,14 +19,20 @@ import android.content.Intent;
 import android.preference.PreferenceManager;
 import android.content.SharedPreferences;
 import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import android.content.Context;
+import java.io.IOException;
+import java.io.File;
+import android.widget.Toast;
 
-import android.widget.RelativeLayout;
 
+import static edu.cmu.pocketsphinx.SpeechRecognizerSetup.defaultSetup;
+import edu.cmu.pocketsphinx.Assets;
+import edu.cmu.pocketsphinx.Hypothesis;
+import edu.cmu.pocketsphinx.RecognitionListener;
+import edu.cmu.pocketsphinx.SpeechRecognizer;
 
-public class MetronomeView extends Activity {
+public class MetronomeView extends Activity implements RecognitionListener {
 
     private MetronomeAsyncTask metroTask;
     private Handler mHandler;
@@ -41,6 +47,10 @@ public class MetronomeView extends Activity {
     private double sound = 380;
     private boolean started = false;
     SharedPreferences sharedPref;
+
+    private static final String KEYPHRASE = "hey phone";
+
+    private SpeechRecognizer recognizer;
 
     private AdView adView;
 
@@ -116,9 +126,77 @@ public class MetronomeView extends Activity {
         AdView adView = (AdView) this.findViewById(R.id.adView);
         AdRequest adRequest = new AdRequest.Builder().build();
         adView.loadAd(adRequest);
+
+        new AsyncTask<Void, Void, Exception>() {
+            @Override
+            protected Exception doInBackground(Void... params) {
+                try {
+                    Assets assets = new Assets(MetronomeView.this);
+                    File assetDir = assets.syncAssets();
+                    setupRecognizer(assetDir);
+                } catch (IOException e) {
+                    return e;
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(Exception result) {
+                if (result != null) {
+                    Toast.makeText(getApplicationContext(), "failed to init", Toast.LENGTH_SHORT).show();
+                } else {
+                    switchSearch("wakeup");
+                }
+            }
+        }.execute();
     }
 
+    @Override
+    public void onPartialResult(Hypothesis hypothesis) {
+        String text = hypothesis.getHypstr();
+        if (text.equals(KEYPHRASE))
+            switchSearch("digits");
+    }
 
+    @Override
+    public void onResult(Hypothesis hypothesis) {
+        if (hypothesis != null) {
+            String text = hypothesis.getHypstr();
+            Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onBeginningOfSpeech() {
+    }
+
+    @Override
+    public void onEndOfSpeech() {
+        if ("digits".equals(recognizer.getSearchName()))
+            switchSearch("wakeup");
+    }
+
+    private void switchSearch(String searchName) {
+        recognizer.stop();
+        recognizer.startListening(searchName);
+    }
+
+    private void setupRecognizer(File assetsDir) {
+        File modelsDir = new File(assetsDir, "models");
+        recognizer = defaultSetup()
+                .setAcousticModel(new File(modelsDir, "hmm/en-us-semi"))
+                .setDictionary(new File(modelsDir, "dict/cmu07a.dic"))
+                .setRawLogDir(assetsDir).setKeywordThreshold(1e-20f)
+                .getRecognizer();
+        recognizer.addListener(this);
+
+        // Create keyword-activation search.
+        recognizer.addKeyphraseSearch("wakeup", KEYPHRASE);
+
+        File digitsGrammar = new File(modelsDir, "grammar/digits.gram");
+        recognizer.addGrammarSearch("digits", digitsGrammar);
+
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
