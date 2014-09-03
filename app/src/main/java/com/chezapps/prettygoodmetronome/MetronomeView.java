@@ -48,7 +48,8 @@ public class MetronomeView extends Activity implements RecognitionListener {
     private boolean started = false;
     SharedPreferences sharedPref;
 
-    private static final String KEYPHRASE = "hey phone";
+    private static final String KEYPHRASE_FASTER = "faster";
+    private static final String KEYPHRASE_SLOWER = "slower";
 
     private SpeechRecognizer recognizer;
 
@@ -154,15 +155,25 @@ public class MetronomeView extends Activity implements RecognitionListener {
     @Override
     public void onPartialResult(Hypothesis hypothesis) {
         String text = hypothesis.getHypstr();
-        if (text.equals(KEYPHRASE))
-            switchSearch("digits");
     }
 
     @Override
     public void onResult(Hypothesis hypothesis) {
         if (hypothesis != null) {
             String text = hypothesis.getHypstr();
-            Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+            int inc = 0;
+            if ( text.equals(KEYPHRASE_FASTER)) {
+                inc = 5;
+            }
+            else if (text.equals(KEYPHRASE_SLOWER)) {
+                inc = -5;
+            }
+            if ( myprogress + inc <1 || myprogress + inc > 250)
+                return;
+            myprogress = myprogress + inc;
+            TextView tv = (TextView) findViewById(R.id.bpmview);
+            tv.setText(Integer.toString(myprogress));
+            metroTask.setBpm((short) (myprogress));
         }
     }
 
@@ -172,13 +183,13 @@ public class MetronomeView extends Activity implements RecognitionListener {
 
     @Override
     public void onEndOfSpeech() {
-        if ("digits".equals(recognizer.getSearchName()))
-            switchSearch("wakeup");
+        switchSearch("wakeup");
     }
 
     private void switchSearch(String searchName) {
         recognizer.stop();
-        recognizer.startListening(searchName);
+        recognizer.startListening("menu");
+
     }
 
     private void setupRecognizer(File assetsDir) {
@@ -190,11 +201,11 @@ public class MetronomeView extends Activity implements RecognitionListener {
                 .getRecognizer();
         recognizer.addListener(this);
 
-        // Create keyword-activation search.
-        recognizer.addKeyphraseSearch("wakeup", KEYPHRASE);
+        File menuGrammar = new File(modelsDir, "grammar/menu.gram");
+        recognizer.addGrammarSearch("menu", menuGrammar);
 
-        File digitsGrammar = new File(modelsDir, "grammar/digits.gram");
-        recognizer.addGrammarSearch("digits", digitsGrammar);
+
+
 
     }
 
@@ -248,6 +259,7 @@ public class MetronomeView extends Activity implements RecognitionListener {
 
     public void onBackPressed() {
         metroTask.stop();
+        recognizer.stop();
 //    	metroTask = new MetronomeAsyncTask();
         Runtime.getRuntime().gc();
        // audio.setStreamVolume(AudioManager.STREAM_MUSIC, initialVolume, AudioManager.FLAG_REMOVE_SOUND_AND_VIBRATE);
@@ -256,11 +268,13 @@ public class MetronomeView extends Activity implements RecognitionListener {
 
     public void onStart() {
         metroTask = new MetronomeAsyncTask();
+
         super.onStart();
     }
 
     public void onStop() {
         metroTask.stop();
+        recognizer.stop();
 //    	metroTask = new MetronomeAsyncTask();
         Runtime.getRuntime().gc();
         // audio.setStreamVolume(AudioManager.STREAM_MUSIC, initialVolume, AudioManager.FLAG_REMOVE_SOUND_AND_VIBRATE);
