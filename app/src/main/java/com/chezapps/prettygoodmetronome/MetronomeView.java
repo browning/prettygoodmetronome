@@ -268,8 +268,14 @@ public class MetronomeView extends Activity implements RecognitionListener {
 
     public void onStart() {
         metroTask = new MetronomeAsyncTask();
-
         super.onStart();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();  // Always call the superclass method first
+        if (recognizer != null)
+            recognizer.startListening("menu");
     }
 
     public void onStop() {
@@ -280,6 +286,8 @@ public class MetronomeView extends Activity implements RecognitionListener {
         // audio.setStreamVolume(AudioManager.STREAM_MUSIC, initialVolume, AudioManager.FLAG_REMOVE_SOUND_AND_VIBRATE);
         super.onStop();
     }
+
+
 
     private class MetronomeAsyncTask extends AsyncTask<Void,Void,String> {
         Metronome metronome;
