@@ -56,7 +56,7 @@ public class MetronomeView extends Activity implements RecognitionListener {
     private AdView adView;
 
     /* Your ad unit id. Replace with your actual ad unit id. */
-    private static final String AD_UNIT_ID = "INSERT_YOUR_AD_UNIT_ID_HERE";
+    private static final String AD_UNIT_ID = "ca-app-pub-8787787499631112/7371725788";
 
     private int myprogress = 60;
 
